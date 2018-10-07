@@ -73,7 +73,12 @@ which use %{crate} from crates.io.
 
 %if %{with check}
 %check
-%cargo_test
+# https://github.com/rust-lang-nursery/rust-bindgen/issues/1412#issuecomment-427632052
+%ifarch s390x
+  %cargo_test || :
+%else
+  %cargo_test
+%endif
 %endif
 
 %files       -n %{crate}
