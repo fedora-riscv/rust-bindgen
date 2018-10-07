@@ -1,0 +1,1177 @@
+From a71f3ec3e0960d1a52997603a06fa9cc4ad08c06 Mon Sep 17 00:00:00 2001
+From: Bastien Orivel <eijebong@bananium.fr>
+Date: Tue, 29 May 2018 12:33:02 +0200
+Subject: [PATCH] Update quote and proc-macro.
+
+I give up on the doc comments. This is a rebase of #1334 keeping the formatting
+of the comments and using TokenStream::from_str instead because one can hope.
+
+Fixes #1407.
+---
+ src/codegen/helpers.rs        |  65 +++++------
+ src/codegen/impl_debug.rs     |  16 +--
+ src/codegen/impl_partialeq.rs |   9 +-
+ src/codegen/mod.rs            | 202 +++++++++++++++++-----------------
+ src/codegen/struct_layout.rs  |  11 +-
+ src/ir/context.rs             |  10 +-
+ src/ir/function.rs            |   4 +-
+ src/ir/objc.rs                |   9 +-
+ src/lib.rs                    |   2 +-
+ 9 files changed, 158 insertions(+), 170 deletions(-)
+
+diff --git a/src/codegen/helpers.rs b/src/codegen/helpers.rs
+index 343f1e30..e6274d84 100644
+--- a/src/codegen/helpers.rs
++++ b/src/codegen/helpers.rs
+@@ -2,52 +2,48 @@
+ 
+ use ir::context::BindgenContext;
+ use ir::layout::Layout;
+-use quote;
+-use proc_macro2::{Term, Span};
++use proc_macro2::{self, Ident, Span};
++use quote::TokenStreamExt;
+ 
+ pub mod attributes {
+-    use quote;
+-    use proc_macro2::{Term, Span};
++    use proc_macro2::{self, Ident, Span};
+ 
+-    pub fn repr(which: &str) -> quote::Tokens {
+-        let which = Term::new(which, Span::call_site());
++    pub fn repr(which: &str) -> proc_macro2::TokenStream {
++        let which = Ident::new(which, Span::call_site());
+         quote! {
+             #[repr( #which )]
+         }
+     }
+ 
+-    pub fn repr_list(which_ones: &[&str]) -> quote::Tokens {
+-        let which_ones = which_ones.iter().cloned().map(|one| Term::new(one, Span::call_site()));
++    pub fn repr_list(which_ones: &[&str]) -> proc_macro2::TokenStream {
++        let which_ones = which_ones.iter().cloned().map(|one| Ident::new(one, Span::call_site()));
+         quote! {
+             #[repr( #( #which_ones ),* )]
+         }
+     }
+ 
+-    pub fn derives(which_ones: &[&str]) -> quote::Tokens {
+-        let which_ones = which_ones.iter().cloned().map(|one| Term::new(one, Span::call_site()));
++    pub fn derives(which_ones: &[&str]) -> proc_macro2::TokenStream {
++        let which_ones = which_ones.iter().cloned().map(|one| Ident::new(one, Span::call_site()));
+         quote! {
+             #[derive( #( #which_ones ),* )]
+         }
+     }
+ 
+-    pub fn inline() -> quote::Tokens {
++    pub fn inline() -> proc_macro2::TokenStream {
+         quote! {
+             #[inline]
+         }
+     }
+ 
+-    pub fn doc(comment: String) -> quote::Tokens {
+-        // Doc comments are already preprocessed into nice `///` formats by the
+-        // time they get here. Just make sure that we have newlines around it so
+-        // that nothing else gets wrapped into the comment.
+-        let mut tokens = quote! {};
+-        tokens.append(Term::new("\n", Span::call_site()));
+-        tokens.append(Term::new(&comment, Span::call_site()));
+-        tokens.append(Term::new("\n", Span::call_site()));
+-        tokens
++    pub fn doc(comment: String) -> proc_macro2::TokenStream {
++        use std::str::FromStr;
++
++        // NOTE(emilio): By this point comments are already preprocessed and in
++        // `///` form. Quote turns them into `#[doc]` comments, but oh well.
++        proc_macro2::TokenStream::from_str(&comment).unwrap()
+     }
+ 
+-    pub fn link_name(name: &str) -> quote::Tokens {
++    pub fn link_name(name: &str) -> proc_macro2::TokenStream {
+         // LLVM mangles the name by default but it's already mangled.
+         // Prefixing the name with \u{1} should tell LLVM to not mangle it.
+         let name = format!("\u{1}{}", name);
+@@ -59,7 +55,7 @@ pub mod attributes {
+ 
+ /// Generates a proper type for a field or type with a given `Layout`, that is,
+ /// a type with the correct size and alignment restrictions.
+-pub fn blob(ctx: &BindgenContext, layout: Layout) -> quote::Tokens {
++pub fn blob(ctx: &BindgenContext, layout: Layout) -> proc_macro2::TokenStream {
+     let opaque = layout.opaque();
+ 
+     // FIXME(emilio, #412): We fall back to byte alignment, but there are
+@@ -74,7 +70,7 @@ pub fn blob(ctx: &BindgenContext, layout: Layout) -> quote::Tokens {
+         }
+     };
+ 
+-    let ty_name = Term::new(ty_name, Span::call_site());
++    let ty_name = Ident::new(ty_name, Span::call_site());
+ 
+     let data_len = opaque.array_size(ctx).unwrap_or(layout.size);
+ 
+@@ -90,14 +86,14 @@ pub fn blob(ctx: &BindgenContext, layout: Layout) -> quote::Tokens {
+ }
+ 
+ /// Integer type of the same size as the given `Layout`.
+-pub fn integer_type(ctx: &BindgenContext, layout: Layout) -> Option<quote::Tokens> {
++pub fn integer_type(ctx: &BindgenContext, layout: Layout) -> Option<proc_macro2::TokenStream> {
+     let name = Layout::known_type_for_size(ctx, layout.size)?;
+-    let name = Term::new(name, Span::call_site());
++    let name = Ident::new(name, Span::call_site());
+     Some(quote! { #name })
+ }
+ 
+ /// Generates a bitfield allocation unit type for a type with the given `Layout`.
+-pub fn bitfield_unit(ctx: &BindgenContext, layout: Layout) -> quote::Tokens {
++pub fn bitfield_unit(ctx: &BindgenContext, layout: Layout) -> proc_macro2::TokenStream {
+     let mut tokens = quote! {};
+ 
+     if ctx.options().enable_cxx_namespaces {
+@@ -124,10 +120,9 @@ pub mod ast_ty {
+     use ir::function::FunctionSig;
+     use ir::layout::Layout;
+     use ir::ty::FloatKind;
+-    use quote;
+     use proc_macro2;
+ 
+-    pub fn raw_type(ctx: &BindgenContext, name: &str) -> quote::Tokens {
++    pub fn raw_type(ctx: &BindgenContext, name: &str) -> proc_macro2::TokenStream {
+         let ident = ctx.rust_ident_raw(name);
+         match ctx.options().ctypes_prefix {
+             Some(ref prefix) => {
+@@ -146,7 +141,7 @@ pub mod ast_ty {
+         ctx: &BindgenContext,
+         fk: FloatKind,
+         layout: Option<Layout>,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         // TODO: we probably should take the type layout into account more
+         // often?
+         //
+@@ -186,25 +181,25 @@ pub mod ast_ty {
+         }
+     }
+ 
+-    pub fn int_expr(val: i64) -> quote::Tokens {
++    pub fn int_expr(val: i64) -> proc_macro2::TokenStream {
+         // Don't use quote! { #val } because that adds the type suffix.
+         let val = proc_macro2::Literal::i64_unsuffixed(val);
+         quote!(#val)
+     }
+ 
+-    pub fn uint_expr(val: u64) -> quote::Tokens {
++    pub fn uint_expr(val: u64) -> proc_macro2::TokenStream {
+         // Don't use quote! { #val } because that adds the type suffix.
+         let val = proc_macro2::Literal::u64_unsuffixed(val);
+         quote!(#val)
+     }
+ 
+-    pub fn byte_array_expr(bytes: &[u8]) -> quote::Tokens {
++    pub fn byte_array_expr(bytes: &[u8]) -> proc_macro2::TokenStream {
+         let mut bytes: Vec<_> = bytes.iter().cloned().collect();
+         bytes.push(0);
+         quote! { [ #(#bytes),* ] }
+     }
+ 
+-    pub fn cstr_expr(mut string: String) -> quote::Tokens {
++    pub fn cstr_expr(mut string: String) -> proc_macro2::TokenStream {
+         string.push('\0');
+         let b = proc_macro2::Literal::byte_string(&string.as_bytes());
+         quote! {
+@@ -215,7 +210,7 @@ pub mod ast_ty {
+     pub fn float_expr(
+         ctx: &BindgenContext,
+         f: f64,
+-    ) -> Result<quote::Tokens, ()> {
++    ) -> Result<proc_macro2::TokenStream, ()> {
+         if f.is_finite() {
+             let val = proc_macro2::Literal::f64_unsuffixed(f);
+ 
+@@ -249,7 +244,7 @@ pub mod ast_ty {
+     pub fn arguments_from_signature(
+         signature: &FunctionSig,
+         ctx: &BindgenContext,
+-    ) -> Vec<quote::Tokens> {
++    ) -> Vec<proc_macro2::TokenStream> {
+         let mut unnamed_arguments = 0;
+         signature
+             .argument_types()
+diff --git a/src/codegen/impl_debug.rs b/src/codegen/impl_debug.rs
+index 8759bf27..d429e328 100644
+--- a/src/codegen/impl_debug.rs
++++ b/src/codegen/impl_debug.rs
+@@ -3,14 +3,14 @@ use ir::context::BindgenContext;
+ use ir::derive::CanTriviallyDeriveDebug;
+ use ir::item::{HasTypeParamInArray, IsOpaque, Item, ItemCanonicalName};
+ use ir::ty::{RUST_DERIVE_IN_ARRAY_LIMIT, TypeKind};
+-use quote;
++use proc_macro2;
+ 
+ pub fn gen_debug_impl(
+     ctx: &BindgenContext,
+     fields: &[Field],
+     item: &Item,
+     kind: CompKind,
+-) -> quote::Tokens {
++) -> proc_macro2::TokenStream {
+     let struct_name = item.canonical_name(ctx);
+     let mut format_string = format!("{} {{{{ ", struct_name);
+     let mut tokens = vec![];
+@@ -63,7 +63,7 @@ pub trait ImplDebug<'a> {
+         &self,
+         ctx: &BindgenContext,
+         extra: Self::Extra,
+-    ) -> Option<(String, Vec<quote::Tokens>)>;
++    ) -> Option<(String, Vec<proc_macro2::TokenStream>)>;
+ }
+ 
+ impl<'a> ImplDebug<'a> for FieldData {
+@@ -73,7 +73,7 @@ impl<'a> ImplDebug<'a> for FieldData {
+         &self,
+         ctx: &BindgenContext,
+         _: Self::Extra,
+-    ) -> Option<(String, Vec<quote::Tokens>)> {
++    ) -> Option<(String, Vec<proc_macro2::TokenStream>)> {
+         if let Some(name) = self.name() {
+             ctx.resolve_item(self.ty()).impl_debug(ctx, name)
+         } else {
+@@ -89,7 +89,7 @@ impl<'a> ImplDebug<'a> for BitfieldUnit {
+         &self,
+         ctx: &BindgenContext,
+         _: Self::Extra,
+-    ) -> Option<(String, Vec<quote::Tokens>)> {
++    ) -> Option<(String, Vec<proc_macro2::TokenStream>)> {
+         let mut format_string = String::new();
+         let mut tokens = vec![];
+         for (i, bitfield) in self.bitfields().iter().enumerate() {
+@@ -118,7 +118,7 @@ impl<'a> ImplDebug<'a> for Item {
+         &self,
+         ctx: &BindgenContext,
+         name: &str,
+-    ) -> Option<(String, Vec<quote::Tokens>)> {
++    ) -> Option<(String, Vec<proc_macro2::TokenStream>)> {
+         let name_ident = ctx.rust_ident(name);
+ 
+         // We don't know if blacklisted items `impl Debug` or not, so we can't
+@@ -136,8 +136,8 @@ impl<'a> ImplDebug<'a> for Item {
+ 
+         fn debug_print(
+             name: &str,
+-            name_ident: quote::Tokens,
+-        ) -> Option<(String, Vec<quote::Tokens>)> {
++            name_ident: proc_macro2::TokenStream,
++        ) -> Option<(String, Vec<proc_macro2::TokenStream>)> {
+             Some((
+                 format!("{}: {{:?}}", name),
+                 vec![quote! {
+diff --git a/src/codegen/impl_partialeq.rs b/src/codegen/impl_partialeq.rs
+index c8ff6313..ca61b4bf 100644
+--- a/src/codegen/impl_partialeq.rs
++++ b/src/codegen/impl_partialeq.rs
+@@ -3,7 +3,6 @@ use ir::comp::{CompInfo, CompKind, Field, FieldMethods};
+ use ir::context::BindgenContext;
+ use ir::item::{IsOpaque, Item};
+ use ir::ty::{TypeKind, RUST_DERIVE_IN_ARRAY_LIMIT};
+-use quote;
+ use proc_macro2;
+ 
+ /// Generate a manual implementation of `PartialEq` trait for the
+@@ -12,8 +11,8 @@ pub fn gen_partialeq_impl(
+     ctx: &BindgenContext,
+     comp_info: &CompInfo,
+     item: &Item,
+-    ty_for_impl: &quote::Tokens,
+-) -> Option<quote::Tokens> {
++    ty_for_impl: &proc_macro2::TokenStream,
++) -> Option<proc_macro2::TokenStream> {
+     let mut tokens = vec![];
+ 
+     if item.is_opaque(ctx, &()) {
+@@ -71,8 +70,8 @@ pub fn gen_partialeq_impl(
+     })
+ }
+ 
+-fn gen_field(ctx: &BindgenContext, ty_item: &Item, name: &str) -> quote::Tokens {
+-    fn quote_equals(name_ident: proc_macro2::Term) -> quote::Tokens {
++fn gen_field(ctx: &BindgenContext, ty_item: &Item, name: &str) -> proc_macro2::TokenStream {
++    fn quote_equals(name_ident: proc_macro2::Ident) -> proc_macro2::TokenStream {
+         quote! { self.#name_ident == other.#name_ident }
+     }
+ 
+diff --git a/src/codegen/mod.rs b/src/codegen/mod.rs
+index 91198701..de0375af 100644
+--- a/src/codegen/mod.rs
++++ b/src/codegen/mod.rs
+@@ -37,8 +37,8 @@ use ir::template::{AsTemplateParam, TemplateInstantiation, TemplateParameters};
+ use ir::ty::{Type, TypeKind};
+ use ir::var::Var;
+ 
+-use quote;
+-use proc_macro2::{self, Term, Span};
++use quote::TokenStreamExt;
++use proc_macro2::{self, Ident, Span};
+ 
+ use std;
+ use std::borrow::Cow;
+@@ -48,11 +48,12 @@ use std::collections::hash_map::{Entry, HashMap};
+ use std::fmt::Write;
+ use std::iter;
+ use std::ops;
++use std::str::FromStr;
+ 
+ // Name of type defined in constified enum module
+ pub static CONSTIFIED_ENUM_MODULE_REPR_NAME: &'static str = "Type";
+ 
+-fn top_level_path(ctx: &BindgenContext, item: &Item) -> Vec<quote::Tokens> {
++fn top_level_path(ctx: &BindgenContext, item: &Item) -> Vec<proc_macro2::TokenStream> {
+     let mut path = vec![quote! { self }];
+ 
+     if ctx.options().enable_cxx_namespaces {
+@@ -64,7 +65,7 @@ fn top_level_path(ctx: &BindgenContext, item: &Item) -> Vec<quote::Tokens> {
+     path
+ }
+ 
+-fn root_import(ctx: &BindgenContext, module: &Item) -> quote::Tokens {
++fn root_import(ctx: &BindgenContext, module: &Item) -> proc_macro2::TokenStream {
+     assert!(ctx.options().enable_cxx_namespaces, "Somebody messed it up");
+     assert!(module.is_module());
+ 
+@@ -76,7 +77,7 @@ fn root_import(ctx: &BindgenContext, module: &Item) -> quote::Tokens {
+ 
+ 
+     let mut tokens = quote! {};
+-    tokens.append_separated(path, Term::new("::", Span::call_site()));
++    tokens.append_separated(path, quote!(::));
+ 
+     quote! {
+         #[allow(unused_imports)]
+@@ -85,7 +86,7 @@ fn root_import(ctx: &BindgenContext, module: &Item) -> quote::Tokens {
+ }
+ 
+ struct CodegenResult<'a> {
+-    items: Vec<quote::Tokens>,
++    items: Vec<proc_macro2::TokenStream>,
+ 
+     /// A monotonic counter used to add stable unique id's to stuff that doesn't
+     /// need to be referenced by anything.
+@@ -212,7 +213,7 @@ impl<'a> CodegenResult<'a> {
+         self.vars_seen.insert(name.into());
+     }
+ 
+-    fn inner<F>(&mut self, cb: F) -> Vec<quote::Tokens>
++    fn inner<F>(&mut self, cb: F) -> Vec<proc_macro2::TokenStream>
+     where
+         F: FnOnce(&mut Self),
+     {
+@@ -231,7 +232,7 @@ impl<'a> CodegenResult<'a> {
+ }
+ 
+ impl<'a> ops::Deref for CodegenResult<'a> {
+-    type Target = Vec<quote::Tokens>;
++    type Target = Vec<proc_macro2::TokenStream>;
+ 
+     fn deref(&self) -> &Self::Target {
+         &self.items
+@@ -247,11 +248,11 @@ impl<'a> ops::DerefMut for CodegenResult<'a> {
+ /// A trait to convert a rust type into a pointer, optionally const, to the same
+ /// type.
+ trait ToPtr {
+-    fn to_ptr(self, is_const: bool) -> quote::Tokens;
++    fn to_ptr(self, is_const: bool) -> proc_macro2::TokenStream;
+ }
+ 
+-impl ToPtr for quote::Tokens {
+-    fn to_ptr(self, is_const: bool) -> quote::Tokens {
++impl ToPtr for proc_macro2::TokenStream {
++    fn to_ptr(self, is_const: bool) -> proc_macro2::TokenStream {
+         if is_const {
+             quote! { *const #self }
+         } else {
+@@ -260,7 +261,7 @@ impl ToPtr for quote::Tokens {
+     }
+ }
+ 
+-/// An extension trait for `quote::Tokens` that lets us append any implicit
++/// An extension trait for `proc_macro2::TokenStream` that lets us append any implicit
+ /// template parameters that exist for some type, if necessary.
+ trait AppendImplicitTemplateParams {
+     fn append_implicit_template_params(
+@@ -270,7 +271,7 @@ trait AppendImplicitTemplateParams {
+     );
+ }
+ 
+-impl AppendImplicitTemplateParams for quote::Tokens {
++impl AppendImplicitTemplateParams for proc_macro2::TokenStream {
+     fn append_implicit_template_params(
+         &mut self,
+         ctx: &BindgenContext,
+@@ -439,10 +440,7 @@ impl CodeGenerator for Module {
+             if let Some(raw_lines) = ctx.options().module_lines.get(&path) {
+                 for raw_line in raw_lines {
+                     found_any = true;
+-                    // FIXME(emilio): The use of `Term` is an abuse, but we abuse it
+-                    // in a bunch more places.
+-                    let line = Term::new(raw_line, Span::call_site());
+-                    result.push(quote! { #line });
++                    result.push(proc_macro2::TokenStream::from_str(raw_line).unwrap());
+                 }
+             }
+ 
+@@ -745,7 +743,7 @@ impl CodeGenerator for Type {
+                         pub use
+                     });
+                     let path = top_level_path(ctx, item);
+-                    tokens.append_separated(path, Term::new("::", Span::call_site()));
++                    tokens.append_separated(path, quote!(::));
+                     tokens.append_all(quote! {
+                         :: #inner_rust_type  as #rust_name ;
+                     });
+@@ -857,7 +855,7 @@ impl<'a> TryToRustTy for Vtable<'a> {
+         &self,
+         ctx: &BindgenContext,
+         _: &(),
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         let name = ctx.rust_ident(self.canonical_name(ctx));
+         Ok(quote! {
+             #name
+@@ -952,8 +950,8 @@ trait FieldCodegen<'a> {
+         methods: &mut M,
+         extra: Self::Extra,
+     ) where
+-        F: Extend<quote::Tokens>,
+-        M: Extend<quote::Tokens>;
++        F: Extend<proc_macro2::TokenStream>,
++        M: Extend<proc_macro2::TokenStream>;
+ }
+ 
+ impl<'a> FieldCodegen<'a> for Field {
+@@ -972,8 +970,8 @@ impl<'a> FieldCodegen<'a> for Field {
+         methods: &mut M,
+         _: (),
+     ) where
+-        F: Extend<quote::Tokens>,
+-        M: Extend<quote::Tokens>,
++        F: Extend<proc_macro2::TokenStream>,
++        M: Extend<proc_macro2::TokenStream>,
+     {
+         match *self {
+             Field::DataMember(ref data) => {
+@@ -1024,8 +1022,8 @@ impl<'a> FieldCodegen<'a> for FieldData {
+         methods: &mut M,
+         _: (),
+     ) where
+-        F: Extend<quote::Tokens>,
+-        M: Extend<quote::Tokens>,
++        F: Extend<proc_macro2::TokenStream>,
++        M: Extend<proc_macro2::TokenStream>,
+     {
+         // Bitfields are handled by `FieldCodegen` implementations for
+         // `BitfieldUnit` and `Bitfield`.
+@@ -1159,8 +1157,8 @@ impl<'a> FieldCodegen<'a> for FieldData {
+ 
+ impl BitfieldUnit {
+     /// Get the constructor name for this bitfield unit.
+-    fn ctor_name(&self) -> quote::Tokens {
+-        let ctor_name = Term::new(&format!("new_bitfield_{}", self.nth()), Span::call_site());
++    fn ctor_name(&self) -> proc_macro2::TokenStream {
++        let ctor_name = Ident::new(&format!("new_bitfield_{}", self.nth()), Span::call_site());
+         quote! {
+             #ctor_name
+         }
+@@ -1178,9 +1176,9 @@ impl Bitfield {
+     fn extend_ctor_impl(
+         &self,
+         ctx: &BindgenContext,
+-        param_name: quote::Tokens,
+-        mut ctor_impl: quote::Tokens,
+-    ) -> quote::Tokens {
++        param_name: proc_macro2::TokenStream,
++        mut ctor_impl: proc_macro2::TokenStream,
++    ) -> proc_macro2::TokenStream {
+         let bitfield_ty = ctx.resolve_type(self.ty());
+         let bitfield_ty_layout = bitfield_ty.layout(ctx).expect(
+             "Bitfield without layout? Gah!",
+@@ -1224,8 +1222,8 @@ impl<'a> FieldCodegen<'a> for BitfieldUnit {
+         methods: &mut M,
+         _: (),
+     ) where
+-        F: Extend<quote::Tokens>,
+-        M: Extend<quote::Tokens>,
++        F: Extend<proc_macro2::TokenStream>,
++        M: Extend<proc_macro2::TokenStream>,
+     {
+         result.saw_bitfield_unit();
+ 
+@@ -1322,7 +1320,7 @@ impl<'a> FieldCodegen<'a> for BitfieldUnit {
+ fn bitfield_getter_name(
+     ctx: &BindgenContext,
+     bitfield: &Bitfield,
+-) -> quote::Tokens {
++) -> proc_macro2::TokenStream {
+     let name = bitfield.getter_name();
+     let name = ctx.rust_ident_raw(name);
+     quote! { #name }
+@@ -1331,7 +1329,7 @@ fn bitfield_getter_name(
+ fn bitfield_setter_name(
+     ctx: &BindgenContext,
+     bitfield: &Bitfield,
+-) -> quote::Tokens {
++) -> proc_macro2::TokenStream {
+     let setter = bitfield.setter_name();
+     let setter = ctx.rust_ident_raw(setter);
+     quote! { #setter }
+@@ -1353,13 +1351,13 @@ impl<'a> FieldCodegen<'a> for Bitfield {
+         methods: &mut M,
+         (unit_field_name, bitfield_representable_as_int): (&'a str, &mut bool),
+     ) where
+-        F: Extend<quote::Tokens>,
+-        M: Extend<quote::Tokens>,
++        F: Extend<proc_macro2::TokenStream>,
++        M: Extend<proc_macro2::TokenStream>,
+     {
+         let prefix = ctx.trait_prefix();
+         let getter_name = bitfield_getter_name(ctx, self);
+         let setter_name = bitfield_setter_name(ctx, self);
+-        let unit_field_ident = Term::new(unit_field_name, Span::call_site());
++        let unit_field_ident = Ident::new(unit_field_name, Span::call_site());
+ 
+         let bitfield_ty_item = ctx.resolve_item(self.ty());
+         let bitfield_ty = bitfield_ty_item.expect_type();
+@@ -1792,7 +1790,7 @@ impl CodeGenerator for CompInfo {
+         if self.found_unknown_attr() {
+             warn!(
+                 "Type {} has an unknown attribute that may affect layout",
+-                canonical_ident.as_str()
++                canonical_ident
+             );
+         }
+ 
+@@ -1806,7 +1804,7 @@ impl CodeGenerator for CompInfo {
+             if ctx.options().layout_tests && !self.is_forward_declaration() {
+                 if let Some(layout) = layout {
+                     let fn_name =
+-                        format!("bindgen_test_layout_{}", canonical_ident.as_str());
++                        format!("bindgen_test_layout_{}", canonical_ident);
+                     let fn_name = ctx.rust_ident_raw(fn_name);
+                     let prefix = ctx.trait_prefix();
+                     let size_of_expr = quote! {
+@@ -1868,7 +1866,7 @@ impl CodeGenerator for CompInfo {
+                                         })
+                                     })
+                                 })
+-                                .collect::<Vec<quote::Tokens>>();
++                                .collect::<Vec<proc_macro2::TokenStream>>();
+ 
+                             asserts
+                         };
+@@ -2008,7 +2006,7 @@ trait MethodCodegen {
+     fn codegen_method<'a>(
+         &self,
+         ctx: &BindgenContext,
+-        methods: &mut Vec<quote::Tokens>,
++        methods: &mut Vec<proc_macro2::TokenStream>,
+         method_names: &mut HashMap<String, usize>,
+         result: &mut CodegenResult<'a>,
+         parent: &CompInfo,
+@@ -2019,7 +2017,7 @@ impl MethodCodegen for Method {
+     fn codegen_method<'a>(
+         &self,
+         ctx: &BindgenContext,
+-        methods: &mut Vec<quote::Tokens>,
++        methods: &mut Vec<proc_macro2::TokenStream>,
+         method_names: &mut HashMap<String, usize>,
+         result: &mut CodegenResult<'a>,
+         _parent: &CompInfo,
+@@ -2220,24 +2218,24 @@ impl std::str::FromStr for EnumVariation {
+ enum EnumBuilder<'a> {
+     Rust {
+         codegen_depth: usize,
+-        attrs: Vec<quote::Tokens>,
+-        ident: Term,
+-        tokens: quote::Tokens,
++        attrs: Vec<proc_macro2::TokenStream>,
++        ident: Ident,
++        tokens: proc_macro2::TokenStream,
+         emitted_any_variants: bool,
+     },
+     Bitfield {
+         codegen_depth: usize,
+         canonical_name: &'a str,
+-        tokens: quote::Tokens,
++        tokens: proc_macro2::TokenStream,
+     },
+     Consts {
+-        variants: Vec<quote::Tokens>,
++        variants: Vec<proc_macro2::TokenStream>,
+         codegen_depth: usize,
+     },
+     ModuleConsts {
+         codegen_depth: usize,
+         module_name: &'a str,
+-        module_items: Vec<quote::Tokens>,
++        module_items: Vec<proc_macro2::TokenStream>,
+     },
+ }
+ 
+@@ -2256,12 +2254,12 @@ impl<'a> EnumBuilder<'a> {
+     /// the representation, and which variation it should be generated as.
+     fn new(
+         name: &'a str,
+-        attrs: Vec<quote::Tokens>,
+-        repr: quote::Tokens,
++        attrs: Vec<proc_macro2::TokenStream>,
++        repr: proc_macro2::TokenStream,
+         enum_variation: EnumVariation,
+         enum_codegen_depth: usize,
+     ) -> Self {
+-        let ident = Term::new(name, Span::call_site());
++        let ident = Ident::new(name, Span::call_site());
+ 
+         match enum_variation {
+             EnumVariation::Bitfield => {
+@@ -2299,7 +2297,7 @@ impl<'a> EnumBuilder<'a> {
+             }
+ 
+             EnumVariation::ModuleConsts => {
+-                let ident = Term::new(CONSTIFIED_ENUM_MODULE_REPR_NAME, Span::call_site());
++                let ident = Ident::new(CONSTIFIED_ENUM_MODULE_REPR_NAME, Span::call_site());
+                 let type_definition = quote! {
+                     #( #attrs )*
+                     pub type #ident = #repr;
+@@ -2320,7 +2318,7 @@ impl<'a> EnumBuilder<'a> {
+         ctx: &BindgenContext,
+         variant: &EnumVariant,
+         mangling_prefix: Option<&str>,
+-        rust_ty: quote::Tokens,
++        rust_ty: proc_macro2::TokenStream,
+         result: &mut CodegenResult<'b>,
+         is_ty_named: bool,
+     ) -> Self {
+@@ -2422,9 +2420,9 @@ impl<'a> EnumBuilder<'a> {
+     fn build<'b>(
+         self,
+         ctx: &BindgenContext,
+-        rust_ty: quote::Tokens,
++        rust_ty: proc_macro2::TokenStream,
+         result: &mut CodegenResult<'b>,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         match self {
+             EnumBuilder::Rust { attrs, ident, tokens, emitted_any_variants, .. } => {
+                 let variants = if !emitted_any_variants {
+@@ -2607,23 +2605,23 @@ impl CodeGenerator for Enum {
+             ctx: &BindgenContext,
+             enum_: &Type,
+             // Only to avoid recomputing every time.
+-            enum_canonical_name: &Term,
++            enum_canonical_name: &Ident,
+             // May be the same as "variant" if it's because the
+             // enum is unnamed and we still haven't seen the
+             // value.
+-            variant_name: &str,
+-            referenced_name: &Term,
+-            enum_rust_ty: quote::Tokens,
++            variant_name: &Ident,
++            referenced_name: &Ident,
++            enum_rust_ty: proc_macro2::TokenStream,
+             result: &mut CodegenResult<'a>,
+         ) {
+             let constant_name = if enum_.name().is_some() {
+                 if ctx.options().prepend_enum_name {
+-                    format!("{}_{}", enum_canonical_name.as_str(), variant_name)
++                    format!("{}_{}", enum_canonical_name, variant_name)
+                 } else {
+-                    variant_name.into()
++                    format!("{}", variant_name)
+                 }
+             } else {
+-                variant_name.into()
++                format!("{}", variant_name)
+             };
+             let constant_name = ctx.rust_ident(constant_name);
+ 
+@@ -2647,7 +2645,7 @@ impl CodeGenerator for Enum {
+         );
+ 
+         // A map where we keep a value -> variant relation.
+-        let mut seen_values = HashMap::<_, Term>::new();
++        let mut seen_values = HashMap::<_, Ident>::new();
+         let enum_rust_ty = item.to_rust_ty_or_opaque(ctx, &());
+         let is_toplevel = item.is_toplevel(ctx);
+ 
+@@ -2719,7 +2717,7 @@ impl CodeGenerator for Enum {
+                                 ctx,
+                                 enum_ty,
+                                 &ident,
+-                                &*mangled_name,
++                                &Ident::new(&*mangled_name, Span::call_site()),
+                                 existing_variant_name,
+                                 enum_rust_ty.clone(),
+                                 result,
+@@ -2760,11 +2758,11 @@ impl CodeGenerator for Enum {
+                             let parent_name =
+                                 parent_canonical_name.as_ref().unwrap();
+ 
+-                            Term::new(
++                            Ident::new(
+                                 &format!(
+                                     "{}_{}",
+                                     parent_name,
+-                                    variant_name.as_str()
++                                    variant_name
+                                 ),
+                                 Span::call_site()
+                             )
+@@ -2774,7 +2772,7 @@ impl CodeGenerator for Enum {
+                             ctx,
+                             enum_ty,
+                             &ident,
+-                            mangled_name.as_str(),
++                            &mangled_name,
+                             &variant_name,
+                             enum_rust_ty.clone(),
+                             result,
+@@ -2811,7 +2809,7 @@ trait TryToOpaque {
+         &self,
+         ctx: &BindgenContext,
+         extra: &Self::Extra,
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         self.try_get_layout(ctx, extra).map(|layout| {
+             helpers::blob(ctx, layout)
+         })
+@@ -2838,7 +2836,7 @@ trait ToOpaque: TryToOpaque {
+         &self,
+         ctx: &BindgenContext,
+         extra: &Self::Extra,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         let layout = self.get_layout(ctx, extra);
+         helpers::blob(ctx, layout)
+     }
+@@ -2864,7 +2862,7 @@ trait TryToRustTy {
+         &self,
+         ctx: &BindgenContext,
+         extra: &Self::Extra,
+-    ) -> error::Result<quote::Tokens>;
++    ) -> error::Result<proc_macro2::TokenStream>;
+ }
+ 
+ /// Fallible conversion to a Rust type or an opaque blob with the correct size
+@@ -2879,7 +2877,7 @@ trait TryToRustTyOrOpaque: TryToRustTy + TryToOpaque {
+         &self,
+         ctx: &BindgenContext,
+         extra: &<Self as TryToRustTyOrOpaque>::Extra,
+-    ) -> error::Result<quote::Tokens>;
++    ) -> error::Result<proc_macro2::TokenStream>;
+ }
+ 
+ impl<E, T> TryToRustTyOrOpaque for T
+@@ -2893,7 +2891,7 @@ where
+         &self,
+         ctx: &BindgenContext,
+         extra: &E,
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         self.try_to_rust_ty(ctx, extra).or_else(
+             |_| if let Ok(layout) =
+                 self.try_get_layout(ctx, extra)
+@@ -2930,7 +2928,7 @@ trait ToRustTyOrOpaque: TryToRustTy + ToOpaque {
+         &self,
+         ctx: &BindgenContext,
+         extra: &<Self as ToRustTyOrOpaque>::Extra,
+-    ) -> quote::Tokens;
++    ) -> proc_macro2::TokenStream;
+ }
+ 
+ impl<E, T> ToRustTyOrOpaque for T
+@@ -2943,7 +2941,7 @@ where
+         &self,
+         ctx: &BindgenContext,
+         extra: &E,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         self.try_to_rust_ty(ctx, extra).unwrap_or_else(|_| {
+             self.to_opaque(ctx, extra)
+         })
+@@ -2975,7 +2973,7 @@ where
+         &self,
+         ctx: &BindgenContext,
+         _: &(),
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         ctx.resolve_item((*self).into()).try_to_rust_ty(ctx, &())
+     }
+ }
+@@ -2999,7 +2997,7 @@ impl TryToRustTy for Item {
+         &self,
+         ctx: &BindgenContext,
+         _: &(),
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         self.kind().expect_type().try_to_rust_ty(ctx, self)
+     }
+ }
+@@ -3023,7 +3021,7 @@ impl TryToRustTy for Type {
+         &self,
+         ctx: &BindgenContext,
+         item: &Item,
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         use self::helpers::ast_ty::*;
+ 
+         match *self.kind() {
+@@ -3125,7 +3123,7 @@ impl TryToRustTy for Type {
+             }
+             TypeKind::Enum(..) => {
+                 let path = item.namespace_aware_canonical_path(ctx);
+-                let path = Term::new(&path.join("::"), Span::call_site());
++                let path = proc_macro2::TokenStream::from_str(&path.join("::")).unwrap();
+                 Ok(quote!(#path))
+             }
+             TypeKind::TemplateInstantiation(ref inst) => {
+@@ -3224,7 +3222,7 @@ impl TryToRustTy for TemplateInstantiation {
+         &self,
+         ctx: &BindgenContext,
+         item: &Item,
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         if self.is_opaque(ctx, item) {
+             return Err(error::Error::InstantiationOfOpaqueType);
+         }
+@@ -3236,7 +3234,7 @@ impl TryToRustTy for TemplateInstantiation {
+ 
+         let mut ty = quote! {};
+         let def_path = def.namespace_aware_canonical_path(ctx);
+-        ty.append_separated(def_path.into_iter().map(|p| ctx.rust_ident(p)), Term::new("::", Span::call_site()));
++        ty.append_separated(def_path.into_iter().map(|p| ctx.rust_ident(p)), quote!(::));
+ 
+         let def_params = def.self_template_params(ctx);
+         if def_params.is_empty() {
+@@ -3288,7 +3286,7 @@ impl TryToRustTy for FunctionSig {
+         &self,
+         ctx: &BindgenContext,
+         _: &(),
+-    ) -> error::Result<quote::Tokens> {
++    ) -> error::Result<proc_macro2::TokenStream> {
+         // TODO: we might want to consider ignoring the reference return value.
+         let ret = utils::fnsig_return_ty(ctx, &self);
+         let arguments = utils::fnsig_arguments(ctx, &self);
+@@ -3297,7 +3295,7 @@ impl TryToRustTy for FunctionSig {
+         match abi {
+             Abi::ThisCall if !ctx.options().rust_features().thiscall_abi => {
+                 warn!("Skipping function with thiscall ABI that isn't supported by the configured Rust target");
+-                Ok(quote::Tokens::new())
++                Ok(proc_macro2::TokenStream::new())
+             }
+             _ => {
+                 Ok(quote! {
+@@ -3423,7 +3421,7 @@ fn objc_method_codegen(
+     method: &ObjCMethod,
+     class_name: Option<&str>,
+     prefix: &str,
+-) -> (quote::Tokens, quote::Tokens) {
++) -> (proc_macro2::TokenStream, proc_macro2::TokenStream) {
+     let signature = method.signature();
+     let fn_args = utils::fnsig_arguments(ctx, signature);
+     let fn_ret = utils::fnsig_return_ty(ctx, signature);
+@@ -3537,7 +3535,7 @@ impl CodeGenerator for ObjCInterface {
+     }
+ }
+ 
+-pub(crate) fn codegen(context: BindgenContext) -> (Vec<quote::Tokens>, BindgenOptions) {
++pub(crate) fn codegen(context: BindgenContext) -> (Vec<proc_macro2::TokenStream>, BindgenOptions) {
+     context.gen(|context| {
+         let _t = context.timer("codegen");
+         let counter = Cell::new(0);
+@@ -3573,12 +3571,12 @@ mod utils {
+     use ir::function::FunctionSig;
+     use ir::item::{Item, ItemCanonicalPath};
+     use ir::ty::TypeKind;
+-    use quote;
+-    use proc_macro2::{Term, Span};
++    use proc_macro2;
+     use std::mem;
++    use std::str::FromStr;
+ 
+-    pub fn prepend_bitfield_unit_type(result: &mut Vec<quote::Tokens>) {
+-        let bitfield_unit_type = Term::new(include_str!("./bitfield_unit.rs"), Span::call_site());
++    pub fn prepend_bitfield_unit_type(result: &mut Vec<proc_macro2::TokenStream>) {
++        let bitfield_unit_type = proc_macro2::TokenStream::from_str(include_str!("./bitfield_unit.rs")).unwrap();
+         let bitfield_unit_type = quote!(#bitfield_unit_type);
+ 
+         let items = vec![bitfield_unit_type];
+@@ -3588,7 +3586,7 @@ mod utils {
+ 
+     pub fn prepend_objc_header(
+         ctx: &BindgenContext,
+-        result: &mut Vec<quote::Tokens>,
++        result: &mut Vec<proc_macro2::TokenStream>,
+     ) {
+         let use_objc = if ctx.options().objc_extern_crate {
+             quote! {
+@@ -3613,7 +3611,7 @@ mod utils {
+ 
+     pub fn prepend_block_header(
+         ctx: &BindgenContext,
+-        result: &mut Vec<quote::Tokens>,
++        result: &mut Vec<proc_macro2::TokenStream>,
+     ) {
+         let use_block = if ctx.options().block_extern_crate {
+             quote! {
+@@ -3632,7 +3630,7 @@ mod utils {
+ 
+     pub fn prepend_union_types(
+         ctx: &BindgenContext,
+-        result: &mut Vec<quote::Tokens>,
++        result: &mut Vec<proc_macro2::TokenStream>,
+     ) {
+         let prefix = ctx.trait_prefix();
+ 
+@@ -3731,7 +3729,7 @@ mod utils {
+ 
+     pub fn prepend_incomplete_array_types(
+         ctx: &BindgenContext,
+-        result: &mut Vec<quote::Tokens>,
++        result: &mut Vec<proc_macro2::TokenStream>,
+     ) {
+         let prefix = ctx.trait_prefix();
+ 
+@@ -3804,7 +3802,7 @@ mod utils {
+     }
+ 
+     pub fn prepend_complex_type(
+-        result: &mut Vec<quote::Tokens>,
++        result: &mut Vec<proc_macro2::TokenStream>,
+     ) {
+         let complex_type = quote! {
+             #[derive(PartialEq, Copy, Clone, Hash, Debug, Default)]
+@@ -3823,18 +3821,14 @@ mod utils {
+     pub fn build_path(
+         item: &Item,
+         ctx: &BindgenContext,
+-    ) -> error::Result<quote::Tokens> {
+-        use proc_macro2::{Term, Span};
+-
++    ) -> error::Result<proc_macro2::TokenStream> {
+         let path = item.namespace_aware_canonical_path(ctx);
+-        let path = Term::new(&path.join("::"), Span::call_site());
+-        let tokens = quote! {#path};
+-        //tokens.append_separated(path, "::");
++        let tokens = proc_macro2::TokenStream::from_str(&path.join("::")).unwrap();
+ 
+         Ok(tokens)
+     }
+ 
+-    fn primitive_ty(ctx: &BindgenContext, name: &str) -> quote::Tokens {
++    fn primitive_ty(ctx: &BindgenContext, name: &str) -> proc_macro2::TokenStream {
+         let ident = ctx.rust_ident_raw(name);
+         quote! {
+             #ident
+@@ -3844,7 +3838,7 @@ mod utils {
+     pub fn type_from_named(
+         ctx: &BindgenContext,
+         name: &str,
+-    ) -> Option<quote::Tokens> {
++    ) -> Option<proc_macro2::TokenStream> {
+         // FIXME: We could use the inner item to check this is really a
+         // primitive type but, who the heck overrides these anyway?
+         Some(match name {
+@@ -3867,7 +3861,7 @@ mod utils {
+     pub fn fnsig_return_ty(
+         ctx: &BindgenContext,
+         sig: &FunctionSig,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         let return_item = ctx.resolve_item(sig.return_type());
+         if let TypeKind::Void = *return_item.kind().expect_type().kind() {
+             quote! { }
+@@ -3882,7 +3876,7 @@ mod utils {
+     pub fn fnsig_arguments(
+         ctx: &BindgenContext,
+         sig: &FunctionSig,
+-    ) -> Vec<quote::Tokens> {
++    ) -> Vec<proc_macro2::TokenStream> {
+         use super::ToPtr;
+ 
+         let mut unnamed_arguments = 0;
+@@ -3945,7 +3939,7 @@ mod utils {
+     pub fn fnsig_block(
+         ctx: &BindgenContext,
+         sig: &FunctionSig,
+-    ) -> quote::Tokens {
++    ) -> proc_macro2::TokenStream {
+         let args = sig.argument_types().iter().map(|&(_, ty)| {
+             let arg_item = ctx.resolve_item(ty);
+ 
+diff --git a/src/codegen/struct_layout.rs b/src/codegen/struct_layout.rs
+index 0ea23ddf..921ab215 100644
+--- a/src/codegen/struct_layout.rs
++++ b/src/codegen/struct_layout.rs
+@@ -6,8 +6,7 @@ use ir::comp::CompInfo;
+ use ir::context::BindgenContext;
+ use ir::layout::Layout;
+ use ir::ty::{Type, TypeKind};
+-use quote;
+-use proc_macro2::{Term, Span};
++use proc_macro2::{self, Ident, Span};
+ use std::cmp;
+ 
+ /// Trace the layout of struct.
+@@ -154,7 +153,7 @@ impl<'a> StructLayoutTracker<'a> {
+         field_name: &str,
+         field_ty: &Type,
+         field_offset: Option<usize>,
+-    ) -> Option<quote::Tokens> {
++    ) -> Option<proc_macro2::TokenStream> {
+         let mut field_layout = field_ty.layout(self.ctx)?;
+ 
+         if let TypeKind::Array(inner, len) =
+@@ -236,7 +235,7 @@ impl<'a> StructLayoutTracker<'a> {
+         padding_layout.map(|layout| self.padding_field(layout))
+     }
+ 
+-    pub fn pad_struct(&mut self, layout: Layout) -> Option<quote::Tokens> {
++    pub fn pad_struct(&mut self, layout: Layout) -> Option<proc_macro2::TokenStream> {
+         debug!(
+             "pad_struct:\n\tself = {:#?}\n\tlayout = {:#?}",
+             self,
+@@ -310,13 +309,13 @@ impl<'a> StructLayoutTracker<'a> {
+         align_to(self.latest_offset, layout.align) - self.latest_offset
+     }
+ 
+-    fn padding_field(&mut self, layout: Layout) -> quote::Tokens {
++    fn padding_field(&mut self, layout: Layout) -> proc_macro2::TokenStream {
+         let ty = helpers::blob(self.ctx, layout);
+         let padding_count = self.padding_count;
+ 
+         self.padding_count += 1;
+ 
+-        let padding_field_name = Term::new(&format!("__bindgen_padding_{}", padding_count), Span::call_site());
++        let padding_field_name = Ident::new(&format!("__bindgen_padding_{}", padding_count), Span::call_site());
+ 
+         self.max_field_align = cmp::max(self.max_field_align, layout.align);
+ 
+diff --git a/src/ir/context.rs b/src/ir/context.rs
+index bdf38428..7dcecebe 100644
+--- a/src/ir/context.rs
++++ b/src/ir/context.rs
+@@ -24,7 +24,7 @@ use cexpr;
+ use clang::{self, Cursor};
+ use clang_sys;
+ use parse::ClangItemParser;
+-use proc_macro2::{Term, Span};
++use proc_macro2::{Ident, Span};
+ use std::borrow::Cow;
+ use std::cell::Cell;
+ use std::collections::{HashMap, HashSet, hash_map};
+@@ -922,7 +922,7 @@ If you encounter an error missing from this list, please file an issue or a PR!"
+     }
+ 
+     /// Returns a mangled name as a rust identifier.
+-    pub fn rust_ident<S>(&self, name: S) -> Term
++    pub fn rust_ident<S>(&self, name: S) -> Ident
+     where
+         S: AsRef<str>
+     {
+@@ -930,11 +930,11 @@ If you encounter an error missing from this list, please file an issue or a PR!"
+     }
+ 
+     /// Returns a mangled name as a rust identifier.
+-    pub fn rust_ident_raw<T>(&self, name: T) -> Term
++    pub fn rust_ident_raw<T>(&self, name: T) -> Ident
+     where
+         T: AsRef<str>
+     {
+-        Term::new(name.as_ref(), Span::call_site())
++        Ident::new(name.as_ref(), Span::call_site())
+     }
+ 
+     /// Iterate over all items that have been defined.
+@@ -2386,7 +2386,7 @@ If you encounter an error missing from this list, please file an issue or a PR!"
+ 
+     /// Convenient method for getting the prefix to use for most traits in
+     /// codegen depending on the `use_core` option.
+-    pub fn trait_prefix(&self) -> Term {
++    pub fn trait_prefix(&self) -> Ident {
+         if self.options().use_core {
+             self.rust_ident_raw("core")
+         } else {
+diff --git a/src/ir/function.rs b/src/ir/function.rs
+index 3f2c8254..d0cc021c 100644
+--- a/src/ir/function.rs
++++ b/src/ir/function.rs
+@@ -12,6 +12,8 @@ use ir::derive::{CanTriviallyDeriveDebug, CanTriviallyDeriveHash,
+                  CanTriviallyDerivePartialEqOrPartialOrd, CanDerive};
+ use parse::{ClangItemParser, ClangSubItemParser, ParseError, ParseResult};
+ use quote;
++use quote::TokenStreamExt;
++use proc_macro2;
+ use std::io;
+ 
+ const RUST_DERIVE_FUNPTR_LIMIT: usize = 12;
+@@ -192,7 +194,7 @@ impl Abi {
+ }
+ 
+ impl quote::ToTokens for Abi {
+-    fn to_tokens(&self, tokens: &mut quote::Tokens) {
++    fn to_tokens(&self, tokens: &mut proc_macro2::TokenStream) {
+         tokens.append_all(match *self {
+             Abi::C => quote! { "C" },
+             Abi::Stdcall => quote! { "stdcall" },
+diff --git a/src/ir/objc.rs b/src/ir/objc.rs
+index 46c0802e..61c22356 100644
+--- a/src/ir/objc.rs
++++ b/src/ir/objc.rs
+@@ -12,8 +12,7 @@ use clang_sys::CXCursor_ObjCClassRef;
+ use clang_sys::CXCursor_ObjCInstanceMethodDecl;
+ use clang_sys::CXCursor_ObjCProtocolDecl;
+ use clang_sys::CXCursor_ObjCProtocolRef;
+-use quote;
+-use proc_macro2::{Term, Span};
++use proc_macro2::{TokenStream, Ident, Span};
+ 
+ /// Objective C interface as used in TypeKind
+ ///
+@@ -213,11 +212,11 @@ impl ObjCMethod {
+     }
+ 
+     /// Formats the method call
+-    pub fn format_method_call(&self, args: &[quote::Tokens]) -> quote::Tokens {
++    pub fn format_method_call(&self, args: &[TokenStream]) -> TokenStream {
+         let split_name: Vec<_> = self.name
+             .split(':')
+             .filter(|p| !p.is_empty())
+-            .map(|name| Term::new(name, Span::call_site()))
++            .map(|name| Ident::new(name, Span::call_site()))
+             .collect();
+ 
+         // No arguments
+@@ -243,7 +242,7 @@ impl ObjCMethod {
+             let arg = arg.to_string();
+             let name_and_sig: Vec<&str> = arg.split(' ').collect();
+             let name = name_and_sig[0];
+-            args_without_types.push(Term::new(name, Span::call_site()))
++            args_without_types.push(Ident::new(name, Span::call_site()))
+         };
+ 
+         let args = split_name
+diff --git a/src/lib.rs b/src/lib.rs
+index a89102d8..a5818eb5 100644
+--- a/src/lib.rs
++++ b/src/lib.rs
+@@ -1632,7 +1632,7 @@ fn ensure_libclang_is_loaded() {
+ #[derive(Debug)]
+ pub struct Bindings {
+     options: BindgenOptions,
+-    module: quote::Tokens,
++    module: proc_macro2::TokenStream,
+ }
+ 
+ impl Bindings {
+-- 
+2.19.0
+
