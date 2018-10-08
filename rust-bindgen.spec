@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.42.0
+Version:        0.42.1
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
@@ -25,7 +25,7 @@ BuildRequires:  rust-packaging
 BuildRequires:  (crate(bitflags) >= 1.0.3 with crate(bitflags) < 2.0.0)
 BuildRequires:  (crate(cexpr) >= 0.3.0 with crate(cexpr) < 0.4.0)
 BuildRequires:  (crate(cfg-if) >= 0.1.0 with crate(cfg-if) < 0.2.0)
-BuildRequires:  ((crate(clang-sys) >= 0.24.0 with crate(clang-sys) < 0.25.0) with crate(clang-sys/runtime) with crate(clang-sys/clang_6_0))
+BuildRequires:  ((crate(clang-sys) >= 0.26.0 with crate(clang-sys) < 0.27.0) with crate(clang-sys/runtime) with crate(clang-sys/clang_6_0))
 BuildRequires:  (crate(clap) >= 2.0.0 with crate(clap) < 3.0.0)
 BuildRequires:  (crate(env_logger) >= 0.5.0 with crate(env_logger) < 0.6.0)
 BuildRequires:  (crate(lazy_static) >= 1.0.0 with crate(lazy_static) < 2.0.0)
@@ -73,12 +73,7 @@ which use %{crate} from crates.io.
 
 %if %{with check}
 %check
-# https://github.com/rust-lang-nursery/rust-bindgen/issues/1412
-%ifarch s390x
-  %cargo_test || :
-%else
-  %cargo_test
-%endif
+%cargo_test
 %endif
 
 %files       -n %{crate}
@@ -92,5 +87,8 @@ which use %{crate} from crates.io.
 %{cargo_registry}/%{crate}-%{version}/
 
 %changelog
+* Mon Oct 08 2018 Josh Stone <jistone@redhat.com> - 0.42.1-1
+- Update to 0.42.1
+
 * Thu Oct 04 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.42.0-1
 - Initial package
