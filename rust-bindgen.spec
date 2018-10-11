@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.42.1
+Version:        0.42.2
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
@@ -87,6 +87,9 @@ which use %{crate} from crates.io.
 %{cargo_registry}/%{crate}-%{version}/
 
 %changelog
+* Thu Oct 11 2018 Josh Stone <jistone@redhat.com> - 0.42.2-1
+- Update to 0.42.2
+
 * Mon Oct 08 2018 Josh Stone <jistone@redhat.com> - 0.42.1-1
 - Update to 0.42.1
 
