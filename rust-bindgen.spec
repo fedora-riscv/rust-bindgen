@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.42.2
+Version:        0.43.0
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
@@ -23,7 +23,7 @@ ExclusiveArch:  %{rust_arches}
 BuildRequires:  rust-packaging
 # [dependencies]
 BuildRequires:  (crate(bitflags) >= 1.0.3 with crate(bitflags) < 2.0.0)
-BuildRequires:  (crate(cexpr) >= 0.3.0 with crate(cexpr) < 0.4.0)
+BuildRequires:  (crate(cexpr) >= 0.3.3 with crate(cexpr) < 0.4.0)
 BuildRequires:  (crate(cfg-if) >= 0.1.0 with crate(cfg-if) < 0.2.0)
 BuildRequires:  ((crate(clang-sys) >= 0.26.0 with crate(clang-sys) < 0.27.0) with crate(clang-sys/runtime) with crate(clang-sys/clang_6_0))
 BuildRequires:  (crate(clap) >= 2.0.0 with crate(clap) < 3.0.0)
@@ -87,6 +87,9 @@ which use %{crate} from crates.io.
 %{cargo_registry}/%{crate}-%{version}/
 
 %changelog
+* Mon Oct 22 2018 Josh Stone <jistone@redhat.com> - 0.43.0-1
+- Update to 0.43.0
+
 * Thu Oct 11 2018 Josh Stone <jistone@redhat.com> - 0.42.2-1
 - Update to 0.42.2
 
