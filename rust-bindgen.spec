@@ -5,7 +5,7 @@
 
 Name:           rust-%{crate}
 Version:        0.43.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -21,29 +21,31 @@ Patch0001:      0001-Update-quote-and-proc-macro.patch
 ExclusiveArch:  %{rust_arches}
 
 BuildRequires:  rust-packaging
-# [dependencies]
-BuildRequires:  (crate(bitflags) >= 1.0.3 with crate(bitflags) < 2.0.0)
-BuildRequires:  (crate(cexpr) >= 0.3.3 with crate(cexpr) < 0.4.0)
-BuildRequires:  (crate(cfg-if) >= 0.1.0 with crate(cfg-if) < 0.2.0)
-BuildRequires:  ((crate(clang-sys) >= 0.26.0 with crate(clang-sys) < 0.27.0) with crate(clang-sys/runtime) with crate(clang-sys/clang_6_0))
-BuildRequires:  (crate(clap) >= 2.0.0 with crate(clap) < 3.0.0)
-BuildRequires:  (crate(env_logger) >= 0.5.0 with crate(env_logger) < 0.6.0)
-BuildRequires:  (crate(lazy_static) >= 1.0.0 with crate(lazy_static) < 2.0.0)
-BuildRequires:  (crate(log) >= 0.4.0 with crate(log) < 0.5.0)
-BuildRequires:  (crate(peeking_take_while) >= 0.1.2 with crate(peeking_take_while) < 0.2.0)
+BuildRequires:  (crate(bitflags/default) >= 1.0.3 with crate(bitflags/default) < 2.0.0)
+BuildRequires:  (crate(cexpr/default) >= 0.3.3 with crate(cexpr/default) < 0.4.0)
+BuildRequires:  (crate(cfg-if/default) >= 0.1.0 with crate(cfg-if/default) < 0.2.0)
+BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.26.0 with crate(clang-sys/clang_6_0) < 0.27.0)
+BuildRequires:  (crate(clang-sys/default) >= 0.26.0 with crate(clang-sys/default) < 0.27.0)
+BuildRequires:  (crate(clang-sys/runtime) >= 0.26.0 with crate(clang-sys/runtime) < 0.27.0)
+BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
+BuildRequires:  (crate(env_logger/default) >= 0.5.0 with crate(env_logger/default) < 0.6.0)
+BuildRequires:  (crate(lazy_static/default) >= 1.0.0 with crate(lazy_static/default) < 2.0.0)
+BuildRequires:  (crate(log/default) >= 0.4.0 with crate(log/default) < 0.5.0)
+BuildRequires:  (crate(peeking_take_while/default) >= 0.1.2 with crate(peeking_take_while/default) < 0.2.0)
 BuildRequires:  (crate(proc-macro2) >= 0.4.0 with crate(proc-macro2) < 0.5.0)
 BuildRequires:  (crate(quote) >= 0.6.0 with crate(quote) < 0.7.0)
-BuildRequires:  (crate(regex) >= 1.0.0 with crate(regex) < 2.0.0)
-BuildRequires:  (crate(which) >= 1.0.2 with crate(which) < 2.0.0)
+BuildRequires:  (crate(regex/default) >= 1.0.0 with crate(regex/default) < 2.0.0)
+BuildRequires:  (crate(which/default) >= 1.0.2 with crate(which/default) < 2.0.0)
 %if %{with check}
-# [dev-dependencies]
-BuildRequires:  (crate(clap) >= 2.0.0 with crate(clap) < 3.0.0)
-BuildRequires:  (crate(diff) >= 0.1.0 with crate(diff) < 0.2.0)
-BuildRequires:  (crate(shlex) >= 0.1.0 with crate(shlex) < 0.2.0)
+BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
+BuildRequires:  (crate(diff/default) >= 0.1.0 with crate(diff/default) < 0.2.0)
+BuildRequires:  (crate(shlex/default) >= 0.1.0 with crate(shlex/default) < 0.2.0)
 %endif
 
-%description
-%{summary}.
+%global _description \
+Automatically generates Rust FFI bindings to C and C++ libraries.
+
+%description %{_description}
 
 %package     -n %{crate}
 Summary:        %{summary}
@@ -51,15 +53,72 @@ Summary:        %{summary}
 %description -n %{crate}
 %{summary}.
 
+%files       -n %{crate}
+%license LICENSE
+%doc README.md
+%{_bindir}/bindgen
+
 %package        devel
 Summary:        %{summary}
 BuildArch:      noarch
 
-%description    devel
-Automatically generates Rust FFI bindings to C and C++ libraries.
+%description    devel %{_description}
 
 This package contains library source intended for building other packages
-which use %{crate} from crates.io.
+which use "%{crate}" crate.
+
+%files          devel
+%license LICENSE
+%doc README.md
+%{cargo_registry}/%{crate}-%{version}/
+
+%package     -n %{name}+default-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+default-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "default" feature of "%{crate}" crate.
+
+%files       -n %{name}+default-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+env_logger-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+env_logger-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "env_logger" feature of "%{crate}" crate.
+
+%files       -n %{name}+env_logger-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+log-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+log-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "log" feature of "%{crate}" crate.
+
+%files       -n %{name}+log-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+logging-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+logging-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "logging" feature of "%{crate}" crate.
+
+%files       -n %{name}+logging-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
 
 %prep
 %autosetup -n %{crate}-%{version} -p1
@@ -76,17 +135,10 @@ which use %{crate} from crates.io.
 %cargo_test
 %endif
 
-%files       -n %{crate}
-%license LICENSE
-%doc README.md
-%{_bindir}/bindgen
-
-%files          devel
-%license LICENSE
-%doc README.md
-%{cargo_registry}/%{crate}-%{version}/
-
 %changelog
+* Sun Nov 04 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.43.0-2
+- Adapt to new packaging
+
 * Mon Oct 22 2018 Josh Stone <jistone@redhat.com> - 0.43.0-1
 - Update to 0.43.0
 
