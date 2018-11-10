@@ -4,8 +4,8 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.43.0
-Release:        2%{?dist}
+Version:        0.43.1
+Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -136,6 +136,9 @@ which use "logging" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Sat Nov 10 2018 Josh Stone <jistone@redhat.com> - 0.43.1-1
+- Update to 0.43.1
+
 * Sun Nov 04 2018 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.43.0-2
 - Adapt to new packaging
 
