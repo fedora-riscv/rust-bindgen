@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.43.1
+Version:        0.46.0
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
@@ -12,11 +12,6 @@ Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 License:        BSD
 URL:            https://crates.io/crates/bindgen
 Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
-# Initial patched metadata
-# * Update quote and proc-macro2
-Patch0:         bindgen-fix-metadata.diff
-# https://github.com/rust-lang-nursery/rust-bindgen/pull/1409
-Patch0001:      0001-Update-quote-and-proc-macro.patch
 
 ExclusiveArch:  %{rust_arches}
 
@@ -28,14 +23,15 @@ BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.26.0 with crate(clang-sys/clang
 BuildRequires:  (crate(clang-sys/default) >= 0.26.0 with crate(clang-sys/default) < 0.27.0)
 BuildRequires:  (crate(clang-sys/runtime) >= 0.26.0 with crate(clang-sys/runtime) < 0.27.0)
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
-BuildRequires:  (crate(env_logger/default) >= 0.5.0 with crate(env_logger/default) < 0.6.0)
+BuildRequires:  (crate(env_logger/default) >= 0.6.0 with crate(env_logger/default) < 0.7.0)
+BuildRequires:  (crate(hashbrown/default) >= 0.1.0 with crate(hashbrown/default) < 0.2.0)
 BuildRequires:  (crate(lazy_static/default) >= 1.0.0 with crate(lazy_static/default) < 2.0.0)
 BuildRequires:  (crate(log/default) >= 0.4.0 with crate(log/default) < 0.5.0)
 BuildRequires:  (crate(peeking_take_while/default) >= 0.1.2 with crate(peeking_take_while/default) < 0.2.0)
 BuildRequires:  (crate(proc-macro2) >= 0.4.0 with crate(proc-macro2) < 0.5.0)
 BuildRequires:  (crate(quote) >= 0.6.0 with crate(quote) < 0.7.0)
 BuildRequires:  (crate(regex/default) >= 1.0.0 with crate(regex/default) < 2.0.0)
-BuildRequires:  (crate(which/default) >= 1.0.2 with crate(which/default) < 2.0.0)
+BuildRequires:  (crate(which/default) >= 2.0.0 with crate(which/default) < 3.0.0)
 %if %{with check}
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
 BuildRequires:  (crate(diff/default) >= 0.1.0 with crate(diff/default) < 0.2.0)
@@ -136,6 +132,9 @@ which use "logging" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Mon Jan 14 2019 Josh Stone <jistone@redhat.com> - 0.46.0-1
+- Update to 0.46.0
+
 * Sat Nov 10 2018 Josh Stone <jistone@redhat.com> - 0.43.1-1
 - Update to 0.43.1
 
