@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.46.0
+Version:        0.47.0
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
@@ -19,9 +19,9 @@ BuildRequires:  rust-packaging
 BuildRequires:  (crate(bitflags/default) >= 1.0.3 with crate(bitflags/default) < 2.0.0)
 BuildRequires:  (crate(cexpr/default) >= 0.3.3 with crate(cexpr/default) < 0.4.0)
 BuildRequires:  (crate(cfg-if/default) >= 0.1.0 with crate(cfg-if/default) < 0.2.0)
-BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.26.0 with crate(clang-sys/clang_6_0) < 0.27.0)
-BuildRequires:  (crate(clang-sys/default) >= 0.26.0 with crate(clang-sys/default) < 0.27.0)
-BuildRequires:  (crate(clang-sys/runtime) >= 0.26.0 with crate(clang-sys/runtime) < 0.27.0)
+BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.27.0 with crate(clang-sys/clang_6_0) < 0.28.0)
+BuildRequires:  (crate(clang-sys/default) >= 0.27.0 with crate(clang-sys/default) < 0.28.0)
+BuildRequires:  (crate(clang-sys/runtime) >= 0.27.0 with crate(clang-sys/runtime) < 0.28.0)
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
 BuildRequires:  (crate(env_logger/default) >= 0.6.0 with crate(env_logger/default) < 0.7.0)
 BuildRequires:  (crate(hashbrown/default) >= 0.1.0 with crate(hashbrown/default) < 0.2.0)
@@ -132,6 +132,9 @@ which use "logging" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Tue Jan 22 2019 Josh Stone <jistone@redhat.com> - 0.47.0-1
+- Update to 0.47.0
+
 * Mon Jan 14 2019 Josh Stone <jistone@redhat.com> - 0.46.0-1
 - Update to 0.46.0
 
