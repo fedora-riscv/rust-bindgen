@@ -4,14 +4,17 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.47.0
-Release:        2%{?dist}
-Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
+Version:        0.48.1
+Release:        1%{?dist}
+Summary:        Automatically generates Rust FFI bindings to C and C++ libraries.
 
 # Upstream license specification: BSD-3-Clause
 License:        BSD
 URL:            https://crates.io/crates/bindgen
-Source0:        https://crates.io/api/v1/crates/%{crate}/%{version}/download#/%{crate}-%{version}.crate
+Source:         %{crates_source}
+# Initial patched metadata
+# - Bump clang-sys to 0.28 https://github.com/rust-lang/rust-bindgen/pull/1539
+Patch0:         bindgen-fix-metadata.diff
 
 ExclusiveArch:  %{rust_arches}
 
@@ -19,9 +22,9 @@ BuildRequires:  rust-packaging
 BuildRequires:  (crate(bitflags/default) >= 1.0.3 with crate(bitflags/default) < 2.0.0)
 BuildRequires:  (crate(cexpr/default) >= 0.3.3 with crate(cexpr/default) < 0.4.0)
 BuildRequires:  (crate(cfg-if/default) >= 0.1.0 with crate(cfg-if/default) < 0.2.0)
-BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.27.0 with crate(clang-sys/clang_6_0) < 0.28.0)
-BuildRequires:  (crate(clang-sys/default) >= 0.27.0 with crate(clang-sys/default) < 0.28.0)
-BuildRequires:  (crate(clang-sys/runtime) >= 0.27.0 with crate(clang-sys/runtime) < 0.28.0)
+BuildRequires:  (crate(clang-sys/clang_6_0) >= 0.28.0 with crate(clang-sys/clang_6_0) < 0.29.0)
+BuildRequires:  (crate(clang-sys/default) >= 0.28.0 with crate(clang-sys/default) < 0.29.0)
+BuildRequires:  (crate(clang-sys/runtime) >= 0.28.0 with crate(clang-sys/runtime) < 0.29.0)
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
 BuildRequires:  (crate(env_logger/default) >= 0.6.0 with crate(env_logger/default) < 0.7.0)
 BuildRequires:  (crate(hashbrown/default) >= 0.1.0 with crate(hashbrown/default) < 0.2.0)
@@ -31,7 +34,7 @@ BuildRequires:  (crate(peeking_take_while/default) >= 0.1.2 with crate(peeking_t
 BuildRequires:  (crate(proc-macro2) >= 0.4.0 with crate(proc-macro2) < 0.5.0)
 BuildRequires:  (crate(quote) >= 0.6.0 with crate(quote) < 0.7.0)
 BuildRequires:  (crate(regex/default) >= 1.0.0 with crate(regex/default) < 2.0.0)
-BuildRequires:  (crate(which/default) >= 2.0.0 with crate(which/default) < 3.0.0)
+BuildRequires:  (crate(which/default) >= 1.0.0 with crate(which/default) < 3.0.0)
 %if %{with check}
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
 BuildRequires:  (crate(diff/default) >= 0.1.0 with crate(diff/default) < 0.2.0)
@@ -64,7 +67,6 @@ This package contains library source intended for building other packages
 which use "%{crate}" crate.
 
 %files          devel
-%license LICENSE
 %doc README.md
 %{cargo_registry}/%{crate}-%{version}/
 
@@ -116,8 +118,92 @@ which use "logging" feature of "%{crate}" crate.
 %files       -n %{name}+logging-devel
 %ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
 
+%package     -n %{name}+static-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+static-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "static" feature of "%{crate}" crate.
+
+%files       -n %{name}+static-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_docs-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_docs-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_docs" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_docs-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_extra_assertions-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_extra_assertions-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_extra_assertions" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_extra_assertions-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_libclang_3_8-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_libclang_3_8-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_libclang_3_8" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_libclang_3_8-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_libclang_3_9-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_libclang_3_9-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_libclang_3_9" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_libclang_3_9-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_libclang_4-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_libclang_4-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_libclang_4" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_libclang_4-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
+%package     -n %{name}+testing_only_libclang_5-devel
+Summary:        %{summary}
+BuildArch:      noarch
+
+%description -n %{name}+testing_only_libclang_5-devel %{_description}
+
+This package contains library source intended for building other packages
+which use "testing_only_libclang_5" feature of "%{crate}" crate.
+
+%files       -n %{name}+testing_only_libclang_5-devel
+%ghost %{cargo_registry}/%{crate}-%{version}/Cargo.toml
+
 %prep
-%autosetup -n %{crate}-%{version} -p1
+%autosetup -n %{crate}-%{version_no_tilde} -p1
 %cargo_prep
 
 %build
@@ -132,6 +218,9 @@ which use "logging" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Sat Mar 16 2019 Robert-André Mauchin <zebob.m@gmail.com> - 0.48.1-1
+- Update to 0.48.1
+
 * Sat Feb 02 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.47.0-2
 - Rebuilt for https://fedoraproject.org/wiki/Fedora_30_Mass_Rebuild
 
