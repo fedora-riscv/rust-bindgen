@@ -4,7 +4,7 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.48.1
+Version:        0.49.0
 Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries.
 
@@ -12,9 +12,6 @@ Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 License:        BSD
 URL:            https://crates.io/crates/bindgen
 Source:         %{crates_source}
-# Initial patched metadata
-# - Bump clang-sys to 0.28 https://github.com/rust-lang/rust-bindgen/pull/1539
-Patch0:         bindgen-fix-metadata.diff
 
 ExclusiveArch:  %{rust_arches}
 
@@ -34,6 +31,7 @@ BuildRequires:  (crate(peeking_take_while/default) >= 0.1.2 with crate(peeking_t
 BuildRequires:  (crate(proc-macro2) >= 0.4.0 with crate(proc-macro2) < 0.5.0)
 BuildRequires:  (crate(quote) >= 0.6.0 with crate(quote) < 0.7.0)
 BuildRequires:  (crate(regex/default) >= 1.0.0 with crate(regex/default) < 2.0.0)
+BuildRequires:  (crate(shlex/default) >= 0.1.0 with crate(shlex/default) < 0.2.0)
 BuildRequires:  (crate(which/default) >= 1.0.0 with crate(which/default) < 3.0.0)
 %if %{with check}
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
@@ -218,6 +216,9 @@ which use "testing_only_libclang_5" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Wed Mar 27 2019 Josh Stone <jistone@redhat.com> - 0.49.0-1
+- Update to 0.49.0
+
 * Sat Mar 16 2019 Robert-André Mauchin <zebob.m@gmail.com> - 0.48.1-1
 - Update to 0.48.1
 
