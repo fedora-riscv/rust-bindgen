@@ -47,8 +47,7 @@ Automatically generates Rust FFI bindings to C and C++ libraries.
 %package     -n %{crate}
 Summary:        %{summary}
 
-%description -n %{crate}
-%{summary}.
+%description -n %{crate} %{_description}
 
 %files       -n %{crate}
 %license LICENSE
