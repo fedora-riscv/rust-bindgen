@@ -5,13 +5,16 @@
 
 Name:           rust-%{crate}
 Version:        0.49.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries.
 
 # Upstream license specification: BSD-3-Clause
 License:        BSD
 URL:            https://crates.io/crates/bindgen
 Source:         %{crates_source}
+# Initial patched metadata
+# - Bump hashbrown to 0.2.0 https://github.com/rust-lang/rust-bindgen/pull/1551
+Patch0:         bindgen-fix-metadata.diff
 
 ExclusiveArch:  %{rust_arches}
 
@@ -24,7 +27,7 @@ BuildRequires:  (crate(clang-sys/default) >= 0.28.0 with crate(clang-sys/default
 BuildRequires:  (crate(clang-sys/runtime) >= 0.28.0 with crate(clang-sys/runtime) < 0.29.0)
 BuildRequires:  (crate(clap/default) >= 2.0.0 with crate(clap/default) < 3.0.0)
 BuildRequires:  (crate(env_logger/default) >= 0.6.0 with crate(env_logger/default) < 0.7.0)
-BuildRequires:  (crate(hashbrown/default) >= 0.1.0 with crate(hashbrown/default) < 0.2.0)
+BuildRequires:  (crate(hashbrown/default) >= 0.2.0 with crate(hashbrown/default) < 0.3.0)
 BuildRequires:  (crate(lazy_static/default) >= 1.0.0 with crate(lazy_static/default) < 2.0.0)
 BuildRequires:  (crate(log/default) >= 0.4.0 with crate(log/default) < 0.5.0)
 BuildRequires:  (crate(peeking_take_while/default) >= 0.1.2 with crate(peeking_take_while/default) < 0.2.0)
@@ -143,6 +146,9 @@ which use "static" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Sun Apr 14 2019 Robert-André Mauchin <zebob.m@gmail.com> - 0.49.0-2
+- Rebuilt for hashbrown 0.2.0
+
 * Wed Mar 27 2019 Josh Stone <jistone@redhat.com> - 0.49.0-1
 - Update to 0.49.0
 
