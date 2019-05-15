@@ -1,0 +1,5 @@
+---
+standard-inventory-qcow2:
+  qemu:
+    # `cargo test` usually eats more than 1G.
+    m: 4G

@@ -1,0 +1,13 @@
+---
+- hosts: localhost
+  roles:
+  - role: standard-test-basic
+    tags:
+    - classic
+    repositories:
+    - repo: "https://src.fedoraproject.org/tests/rust.git"
+      dest: rust
+    tests:
+    - rust/cargo-test
+    environment:
+      pkg: rust-bindgen
