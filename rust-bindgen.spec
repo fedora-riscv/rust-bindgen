@@ -5,7 +5,7 @@
 
 Name:           rust-%{crate}
 Version:        0.49.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -218,6 +218,9 @@ which use "testing_only_libclang_5" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Fri Jul 26 2019 Fedora Release Engineering <releng@fedoraproject.org> - 0.49.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_31_Mass_Rebuild
+
 * Wed May 15 08:38:03 CEST 2019 Igor Gnatenko <ignatenkobrain@fedoraproject.org> - 0.49.0-3
 - Update hashbrown to 0.3
 
