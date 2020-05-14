@@ -5,13 +5,18 @@
 
 Name:           rust-%{crate}
 Version:        0.53.2
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
 License:        BSD
 URL:            https://crates.io/crates/bindgen
 Source:         %{crates_source}
+# Initial patched metadata
+# * No "runtime" feature by default. We can afford linking directly to libclang
+#   and rebuild it for each SONAME change. This just makes it better integrated
+#   in distribution context.
+Patch0:         bindgen-fix-metadata.diff
 
 ExclusiveArch:  %{rust_arches}
 %if %{__cargo_skip_build}
@@ -262,6 +267,9 @@ which use "which-rustfmt" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Thu May 14 08:11:52 CEST 2020 Igor Raits <ignatenkobrain@fedoraproject.org> - 0.53.2-2
+- Link with libclang instead of runtime detection
+
 * Tue Mar 10 2020 Josh Stone <jistone@redhat.com> - 0.53.2-1
 - Update to 0.53.2
 
