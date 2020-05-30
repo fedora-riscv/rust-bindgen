@@ -4,8 +4,8 @@
 %global crate bindgen
 
 Name:           rust-%{crate}
-Version:        0.53.2
-Release:        2%{?dist}
+Version:        0.54.0
+Release:        1%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -267,6 +267,9 @@ which use "which-rustfmt" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Sat May 30 2020 Josh Stone <jistone@redhat.com> - 0.54.0-1
+- Update to 0.54.0
+
 * Thu May 14 08:11:52 CEST 2020 Igor Raits <ignatenkobrain@fedoraproject.org> - 0.53.2-2
 - Link with libclang instead of runtime detection
 
