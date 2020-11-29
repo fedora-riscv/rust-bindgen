@@ -1,6 +1,6 @@
---- bindgen-0.54.0/Cargo.toml	2020-05-21T19:44:20+00:00
-+++ bindgen-0.54.0/Cargo.toml	2020-09-18T13:47:05.734580+00:00
-@@ -88,7 +88,7 @@
+--- bindgen-0.56.0/Cargo.toml	2020-11-26T10:37:06+00:00
++++ bindgen-0.56.0/Cargo.toml	2020-11-27T22:56:18.675727+00:00
+@@ -85,7 +85,7 @@
  version = "0.1"
  
  [dependencies.which]
@@ -9,7 +9,7 @@
  optional = true
  default-features = false
  [dev-dependencies.clap]
-@@ -101,7 +101,7 @@
+@@ -98,7 +98,7 @@
  version = "0.1"
  
  [features]
