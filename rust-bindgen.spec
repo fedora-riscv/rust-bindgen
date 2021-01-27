@@ -5,7 +5,7 @@
 
 Name:           rust-%{crate}
 Version:        0.56.0
-Release:        3%{?dist}
+Release:        4%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -258,6 +258,9 @@ which use "which-rustfmt" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Wed Jan 27 2021 Fedora Release Engineering <releng@fedoraproject.org> - 0.56.0-4
+- Rebuilt for https://fedoraproject.org/wiki/Fedora_34_Mass_Rebuild
+
 * Fri Jan 22 2021 Tom Stellard <tstellar@redhat.com> - 0.56.0-3
 - Rebuild for clang-11.1.0
 
