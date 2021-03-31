@@ -54,8 +54,9 @@ which use "%{crate}" crate.
 
 %files          devel
 %license LICENSE
-%doc README.md csmith-fuzzing/README.md
+%doc README.md
 %{cargo_registry}/%{crate}-%{version_no_tilde}/
+%exclude %{cargo_registry}/%{crate}-%{version_no_tilde}/csmith-fuzzing/
 
 %package     -n %{name}+default-devel
 Summary:        %{summary}
