@@ -5,7 +5,7 @@
 
 Name:           rust-%{crate}
 Version:        0.57.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 # Upstream license specification: BSD-3-Clause
@@ -258,6 +258,9 @@ which use "which-rustfmt" feature of "%{crate}" crate.
 %endif
 
 %changelog
+* Wed May 26 2021 Tom Stellard <tstellar@redhat.com> - 0.57.0-2
+- Rebuild for LLVM 12.0.0-final
+
 * Wed Mar 31 16:16:57 CEST 2021 Robert-André Mauchin <zebob.m@gmail.com> - 0.57.0-1
 - Update to 0.57.0
 - Close: rhbz#1923131
