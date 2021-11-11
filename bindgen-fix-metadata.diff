@@ -1,7 +1,16 @@
---- bindgen-0.57.0/Cargo.toml	1970-01-01T00:00:00+00:00
-+++ bindgen-0.57.0/Cargo.toml	2021-03-31T14:16:57.766479+00:00
+--- bindgen-0.59.1/Cargo.toml   1970-01-01T00:00:00+00:00
++++ bindgen-0.59.1/Cargo.toml   2021-11-11T21:30:32.795129+00:00
+@@ -38,7 +38,7 @@
+ version = "1.0.3"
+ 
+ [dependencies.cexpr]
+-version = "0.5"
++version = "0.6"
+ 
+ [dependencies.clang-sys]
+ version = "1"
 @@ -85,7 +85,7 @@
- version = "0.1"
+ version = "1"
  
  [dependencies.which]
 -version = "3.0"
@@ -9,8 +18,8 @@
  optional = true
  default-features = false
  [dev-dependencies.clap]
-@@ -98,7 +98,7 @@
- version = "0.1"
+@@ -101,7 +101,7 @@
+ version = "3"
  
  [features]
 -default = ["logging", "clap", "runtime", "which-rustfmt"]
