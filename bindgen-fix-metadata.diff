@@ -1,24 +1,6 @@
---- bindgen-0.59.1/Cargo.toml   1970-01-01T00:00:00+00:00
-+++ bindgen-0.59.1/Cargo.toml   2021-11-11T21:30:32.795129+00:00
-@@ -38,7 +38,7 @@
- version = "1.0.3"
- 
- [dependencies.cexpr]
--version = "0.5"
-+version = "0.6"
- 
- [dependencies.clang-sys]
- version = "1"
-@@ -85,7 +85,7 @@
- version = "1"
- 
- [dependencies.which]
--version = "3.0"
-+version = "4.0"
- optional = true
- default-features = false
- [dev-dependencies.clap]
-@@ -101,7 +101,7 @@
+--- bindgen-0.59.2/Cargo.toml	1970-01-01T00:00:01+00:00
++++ bindgen-0.59.2/Cargo.toml	2021-12-15T14:13:11.648974+00:00
+@@ -100,7 +100,7 @@
  version = "3"
  
  [features]
