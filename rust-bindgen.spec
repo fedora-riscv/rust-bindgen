@@ -5,15 +5,13 @@
 %global crate bindgen
 
 Name:           rust-bindgen
-Version:        0.62.0
+Version:        0.63.0
 Release:        %autorelease
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 License:        BSD-3-Clause
 URL:            https://crates.io/crates/bindgen
-Source0:        %{crates_source}
-# https://github.com/rust-lang/rust-bindgen/pull/2352
-Source1:        https://github.com/rust-lang/rust-bindgen/raw/v0.62.0/LICENSE
+Source:         %{crates_source}
 
 BuildRequires:  rust-packaging >= 21
 
@@ -170,7 +168,6 @@ use the "which-rustfmt" feature of the "%{crate}" crate.
 
 %prep
 %autosetup -n %{crate}-%{version_no_tilde} -p1
-cp -pav %{SOURCE1} .
 %cargo_prep
 
 %generate_buildrequires
