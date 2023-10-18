@@ -6,7 +6,7 @@
 
 Name:           rust-bindgen
 Version:        0.68.1
-Release:        %autorelease
+Release:        rvrebuild0.%autorelease
 Summary:        Automatically generates Rust FFI bindings to C and C++ libraries
 
 License:        BSD-3-Clause
